@@ -8,34 +8,31 @@ RUN apk add --no-cache libc6-compat
 # Set the working directory
 WORKDIR /usr/src/app
 
-# Install development dependencies
-FROM base AS install
-RUN mkdir -p /temp/dev
-COPY . ./temp/dev/
-WORKDIR /temp/dev
+# Copy root package.json and package-lock.json
+COPY package.json package-lock.json ./
+
+# Install root dependencies (includes shared libs)
 RUN npm ci --legacy-peer-deps
 
-# Install production dependencies
-FROM base AS install-prod
-RUN mkdir -p /temp/prod
-COPY . /temp/prod/
-WORKDIR /temp/prod
-RUN npm ci --only=production
+# Install development dependencies for server app
+FROM base AS install
+RUN mkdir -p /temp/dev
+COPY apps/server/package.json ./apps/server/package.json
+COPY package-lock.json ./package-lock.json
+WORKDIR /usr/src/app
+RUN npm install --legacy-peer-deps
 
-# Copy node_modules from temp directory (for development)
-FROM base AS prerelease
-COPY --from=install /temp/dev/node_modules node_modules
+# Copy all source code into the container
 COPY . .
 
-# Optional: run tests and build (assuming you are using NX or a similar tool for your build process)
-ENV NODE_ENV=production
+# Optional: Run any build or tests (e.g., using nx or other tool)
 RUN npx nx run server:build
 
-# Final production image
+# Copy the compiled/dist directory to the final image
 FROM base AS release
-COPY --from=install-prod /temp/prod/node_modules node_modules
-COPY --from=prerelease /usr/src/app/apps/server/dist ./dist
-COPY --from=prerelease /usr/src/app/apps/server/package.json ./
+COPY --from=install /usr/src/app/apps/server/dist ./dist
+COPY --from=install /usr/src/app/node_modules ./node_modules
+COPY --from=install /usr/src/app/apps/server/package.json ./apps/server/package.json
 
 # Set environment variables
 ENV NODE_ENV=production
