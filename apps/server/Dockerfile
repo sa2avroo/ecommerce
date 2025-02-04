@@ -26,7 +26,7 @@ RUN npm install --legacy-peer-deps
 COPY . .
 
 # Optional: Run any build or tests (e.g., using nx or other tool)
-RUN npx nx run server:build
+RUN npm run build
 
 # Copy the compiled/dist directory to the final image
 FROM base AS release
