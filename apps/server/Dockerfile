@@ -1,3 +1,4 @@
+
 # Stage 1: Build the TypeScript code
 FROM node:16-alpine AS builder
 
@@ -7,14 +8,14 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 COPY package*.json ./
-COPY apps/server/package.json ./temp/dev/apps/server/
+COPY apps/server/package.json ./apps/server/
 
 RUN npm ci --legacy-peer-deps
 
 COPY tsconfig.json ./
 COPY . .
 
-RUN npx nx run server:build
+RUN cd apps/server && npm run build
 
 FROM node:16-alpine
 
