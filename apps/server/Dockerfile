@@ -15,7 +15,7 @@ RUN npm ci --legacy-peer-deps
 COPY tsconfig.json ./
 COPY . .
 
-RUN cd apps/server && npm run build
+RUN npm run build
 
 FROM node:16-alpine
 
