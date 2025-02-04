@@ -24,9 +24,9 @@ RUN npm install --legacy-peer-deps
 
 # Copy all source code into the container
 COPY . .
-
+WORKDIR /usr/src/app/apps/server
 # Optional: Run any build or tests (e.g., using nx or other tool)
-RUN npm run build:server
+RUN npm run build
 
 # Copy the compiled/dist directory to the final image
 FROM base AS release
