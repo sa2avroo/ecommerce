@@ -1,0 +1,44 @@
+{
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "targetDefaults": {
+    "dev": {
+      "dependsOn": [
+        "^dev"
+      ]
+    },
+    "build": {
+      "dependsOn": [
+        "^build"
+      ],
+      "cache": true
+    },
+    "tsc": {
+      "dependsOn": [
+        "^tsc"
+      ],
+      "cache": true
+    },
+    "lint": {
+      "dependsOn": [
+        "^lint"
+      ],
+      "cache": true
+    },
+    "prettier:check": {
+      "dependsOn": [
+        "^prettier:check"
+      ],
+      "cache": true
+    },
+    "prettier:fix": {
+      "dependsOn": [
+        "^prettier:fix"
+      ],
+      "cache": true
+    },
+    "start": {
+      "cache": true
+    }
+  },
+  "defaultBase": "master"
+}
