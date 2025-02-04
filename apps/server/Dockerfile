@@ -11,16 +11,14 @@ WORKDIR /usr/src/app
 # Install development dependencies
 FROM base AS install
 RUN mkdir -p /temp/dev
-COPY package.json package-lock.json ./temp/dev/
-COPY apps/server/package.json ./temp/dev/apps/server/
+COPY . ./temp/dev/
 WORKDIR /temp/dev
 RUN npm ci --legacy-peer-deps
 
 # Install production dependencies
 FROM base AS install-prod
 RUN mkdir -p /temp/prod
-COPY package.json package-lock.json /temp/prod/
-COPY apps/server/package.json /temp/prod/apps/server/
+COPY . /temp/prod/
 WORKDIR /temp/prod
 RUN npm ci --only=production
 
