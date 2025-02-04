@@ -1,5 +1,5 @@
 # Base image with Node.js installed
-FROM node:16-alpine AS base
+FROM node:22-alpine AS base
 LABEL authors="SHAKIL"
 
 # Install additional dependencies if needed
