@@ -10,7 +10,7 @@ WORKDIR /usr/src/app
 
 # Copy root package.json and package-lock.json
 COPY package.json package-lock.json ./
-
+COPY . .
 # Install root dependencies (includes shared libs)
 RUN npm ci --legacy-peer-deps
 
