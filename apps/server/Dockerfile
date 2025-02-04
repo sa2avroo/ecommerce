@@ -9,13 +9,13 @@ FROM base AS install
 RUN mkdir -p /temp/dev
 COPY package.json package-lock.json ./temp/dev/
 COPY apps/server/package.json ./temp/dev/apps/server/
-RUN cd /temp/dev && npm ci
-
+RUN cd /temp/dev && npm ci --legacy-peer-deps
+ 
 # Install production dependencies only
 RUN mkdir -p /temp/prod
 COPY package.json package-lock.json /temp/prod/
 COPY apps/server/package.json /temp/prod/apps/server/
-RUN cd /temp/prod && npm ci --production
+RUN cd /temp/prod && npm ci --production --legacy-peer-deps
 
 # Copy node_modules from temp directory
 FROM base AS prerelease
