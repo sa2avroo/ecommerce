@@ -1,44 +1,39 @@
-FROM node:16-alpine AS base
-LABEL authors="SHAKIL"
-
+# Stage 1: Build the TypeScript code
+FROM node:16-alpine AS builder
 
 # Install additional dependencies if needed
 RUN apk add --no-cache libc6-compat
 
-WORKDIR /usr/src/app
+WORKDIR /app
 
-# Install dependencies into a temp directory to cache them
-FROM base AS install
-
-RUN mkdir -p /temp/dev
-COPY package.json package-lock.json ./temp/dev/
+COPY package*.json ./
 COPY apps/server/package.json ./temp/dev/apps/server/
-RUN cd /temp/dev && npm ci --legacy-peer-deps
- 
-# Install production dependencies only
-RUN mkdir -p /temp/prod
-COPY package.json package-lock.json /temp/prod/
-COPY apps/server/package.json /temp/prod/apps/server/
-RUN cd /temp/prod && npm ci --only=production
 
-# Copy node_modules from temp directory
-FROM base AS prerelease
-COPY --from=install /temp/dev/node_modules node_modules
+RUN npm ci --legacy-peer-deps
+
+COPY tsconfig.json ./
 COPY . .
 
-# Optional: tests & build
-ENV NODE_ENV=production
 RUN npx nx run server:build
 
-# Production image
-FROM base AS release
-COPY --from=install /temp/prod/node_modules node_modules
-COPY --from=prerelease /usr/src/app/apps/server/dist ./dist
-COPY --from=prerelease /usr/src/app/apps/server/package.json .
+FROM node:16-alpine
 
-# Set environment variables
+WORKDIR /app
+
 ENV NODE_ENV=production
-EXPOSE 5500/tcp
+ENV PORT=5500
 
-# run
-CMD ["npm", "run", "apps/server/app.js"]
+# Create a non-root user
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 shakil
+
+COPY --from=builder --chown=shakil:nodejs /app/package*.json ./
+COPY --from=builder --chown=shakil:nodejs /app/apps/server/package*.json ./
+RUN npm ci --only=production
+
+COPY --from=builder --chown=shakil:nodejs /app/apps/server/dist ./dist
+
+USER shakil
+EXPOSE 5500
+
+CMD ["node", "apps/server/dist/app.js"]
