@@ -1,42 +1,42 @@
-# Base image with Node.js installed
 FROM node:22-alpine AS base
 LABEL authors="SHAKIL"
+
 
 # Install additional dependencies if needed
 RUN apk add --no-cache libc6-compat
 
-# Set the working directory
 WORKDIR /usr/src/app
 
-# Copy root package.json and package-lock.json
-COPY package.json package-lock.json ./
-COPY . .
-# Install root dependencies (includes shared libs)
-RUN npm ci --legacy-peer-deps
-
-# Install development dependencies for server app
+# Install dependencies into a temp directory to cache them
 FROM base AS install
-RUN mkdir -p /temp/dev
-COPY apps/server/package.json ./apps/server/package.json
-COPY package-lock.json ./package-lock.json
-WORKDIR /usr/src/app
-RUN npm install --legacy-peer-deps
 
-# Copy all source code into the container
+RUN mkdir -p /temp/dev
 COPY . .
-WORKDIR /usr/src/app/apps/server
-# Optional: Run any build or tests (e.g., using nx or other tool)
+RUN cd /temp/dev && npm ci --legacy-peer-deps
+ 
+# Install production dependencies only
+RUN mkdir -p /temp/prod
+COPY . .
+RUN cd /temp/prod && npm ci --only=production
+
+# Copy node_modules from temp directory
+FROM base AS prerelease
+COPY --from=install /temp/dev/node_modules node_modules
+COPY . .
+
+# Optional: tests & build
+ENV NODE_ENV=production
 RUN npm run build
 
-# Copy the compiled/dist directory to the final image
+# Production image
 FROM base AS release
-COPY --from=install /usr/src/app/apps/server/dist ./dist
-COPY --from=install /usr/src/app/node_modules ./node_modules
-COPY --from=install /usr/src/app/apps/server/package.json ./apps/server/package.json
+COPY --from=install /temp/prod/node_modules node_modules
+COPY --from=prerelease /usr/src/app/apps/server/dist ./dist
+COPY --from=prerelease /usr/src/app/apps/server/package.json .
 
 # Set environment variables
 ENV NODE_ENV=production
-EXPOSE 5500
+EXPOSE 5500/tcp
 
-# Start the app in production
-CMD ["node", "apps/server/dist/app.js"]
+# run
+CMD ["npm", "run", "apps/server/app.js"]
