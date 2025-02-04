@@ -13,7 +13,7 @@ RUN cd /temp/dev && npm ci
 
 # Install production dependencies only
 RUN mkdir -p /temp/prod
-COPY package.json bun.lock /temp/prod/
+COPY package.json package-lock.json /temp/prod/
 COPY apps/server/package.json /temp/prod/apps/server/
 RUN cd /temp/prod && npm ci --production
 
