@@ -1,4 +1,4 @@
-FROM node:16-alpine AS base
+FROM node:18 AS base
 LABEL authors="SHAKIL"
 
 WORKDIR /usr/src/app
@@ -9,13 +9,13 @@ FROM base AS install
 RUN mkdir -p /temp/dev
 COPY package.json package-lock.json ./temp/dev/
 COPY apps/server/package.json ./temp/dev/apps/server/package.json
-RUN cd /temp/dev && npm install
+RUN cd /temp/dev && npm ci
 
 # Install production dependencies only
 RUN mkdir -p /temp/prod
 COPY package.json package-lock.json /temp/prod/
-COPY apps/server/package.json /temp/prod/apps/server/
-RUN cd /temp/prod && npm install --production
+COPY apps/server/package.json /temp/prod/apps/server/package.json 
+RUN cd /temp/prod && npm ci --production
 
 # Copy node_modules from temp directory
 FROM base AS prerelease
@@ -36,7 +36,5 @@ COPY --from=prerelease /usr/src/app/apps/server/package.json .
 ENV NODE_ENV=production
 EXPOSE 5500/tcp
 
-# Change user to bun which is assumed to have necessary permissions
-USER bun
 # run
-CMD ["bun", "run", "apps/server/app.js"]
+CMD ["npm", "run", "apps/server/app.js"]
