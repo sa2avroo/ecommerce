@@ -1,40 +1,47 @@
-
-# Stage 1: Build the TypeScript code
-FROM node:16-alpine AS builder
+# Base image with Node.js installed
+FROM node:16-alpine AS base
+LABEL authors="SHAKIL"
 
 # Install additional dependencies if needed
 RUN apk add --no-cache libc6-compat
 
-WORKDIR /app
+# Set the working directory
+WORKDIR /usr/src/app
 
-COPY package*.json ./
-COPY apps/server/package.json ./apps/server/
-
+# Install development dependencies
+FROM base AS install
+RUN mkdir -p /temp/dev
+COPY package.json package-lock.json ./temp/dev/
+COPY apps/server/package.json ./temp/dev/apps/server/
+WORKDIR /temp/dev
 RUN npm ci --legacy-peer-deps
 
-COPY tsconfig.json ./
-COPY . .
-
-RUN npm run build
-
-FROM node:16-alpine
-
-WORKDIR /app
-
-ENV NODE_ENV=production
-ENV PORT=5500
-
-# Create a non-root user
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 shakil
-
-COPY --from=builder --chown=shakil:nodejs /app/package*.json ./
-COPY --from=builder --chown=shakil:nodejs /app/apps/server/package*.json ./
+# Install production dependencies
+FROM base AS install-prod
+RUN mkdir -p /temp/prod
+COPY package.json package-lock.json /temp/prod/
+COPY apps/server/package.json /temp/prod/apps/server/
+WORKDIR /temp/prod
 RUN npm ci --only=production
 
-COPY --from=builder --chown=shakil:nodejs /app/apps/server/dist ./dist
+# Copy node_modules from temp directory (for development)
+FROM base AS prerelease
+COPY --from=install /temp/dev/node_modules node_modules
+COPY . .
 
-USER shakil
+# Optional: run tests and build (assuming you are using NX or a similar tool for your build process)
+ENV NODE_ENV=production
+RUN npx nx run server:build
+
+# Final production image
+FROM base AS release
+COPY --from=install-prod /temp/prod/node_modules node_modules
+COPY --from=prerelease /usr/src/app/apps/server/dist ./dist
+COPY --from=prerelease /usr/src/app/apps/server/package.json ./
+
+# Set environment variables
+ENV NODE_ENV=production
 EXPOSE 5500
 
+# Start the app in production
 CMD ["node", "apps/server/dist/app.js"]
