@@ -1,5 +1,9 @@
-FROM node:18 AS base
+FROM node:16-alpine AS base
 LABEL authors="SHAKIL"
+
+
+# Install additional dependencies if needed
+RUN apk add --no-cache libc6-compat
 
 WORKDIR /usr/src/app
 
@@ -15,7 +19,7 @@ RUN cd /temp/dev && npm ci --legacy-peer-deps
 RUN mkdir -p /temp/prod
 COPY package.json package-lock.json /temp/prod/
 COPY apps/server/package.json /temp/prod/apps/server/
-RUN cd /temp/prod && npm ci --production --legacy-peer-deps
+RUN cd /temp/prod && npm ci --only=production
 
 # Copy node_modules from temp directory
 FROM base AS prerelease
